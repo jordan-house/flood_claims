@@ -1,0 +1,138 @@
+---
+title: "Individual FEMA Claims"
+author: "Jordan House"
+date: "9/29/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(mosaic)
+library(stargazer)
+library(googlesheets4)
+library(sf)
+library(viridis)
+library(leaflet)
+
+```
+
+## Data Source
+
+Source: FEMA, NFIP Redacted Claims, last updated July 2020
+
+* Source URL: [https://www.fema.gov/openfema-data-page/fima-nfip-redacted-claims](https://www.fema.gov/openfema-data-page/fima-nfip-redacted-claims)
+* Download URL: [https://www.fema.gov/api/open/v1/FimaNfipClaims.csv](https://www.fema.gov/api/open/v1/FimaNfipClaims.csv)
+
+```{r}
+cville_individual_FEMA <- read.csv("fema_nfip_cville.csv")
+eastern_individual_FEMA <- read.csv("fema_nfip_eastern.csv")
+meta1 <- read_sheet("https://docs.google.com/spreadsheets/d/1nqm3DuVXD1ObbVe_deacvT7uSLdBXfQJo3mkbqDwrVo/edit#gid=1421173401", sheet = 'fema_nfip_cville')
+meta2 <- read_sheet("https://docs.google.com/spreadsheets/d/1nqm3DuVXD1ObbVe_deacvT7uSLdBXfQJo3mkbqDwrVo/edit#gid=1098774681", sheet = 'fema_nfip_eastern')
+```
+
+## Exploration
+
+```{r}
+glimpse(cville_individual_FEMA)
+```
+
+
+```{r}
+glimpse(eastern_individual_FEMA)
+```
+
+## Aggregate Data
+
+```{r}
+# Aggregate Data
+cvilleIndividualByTract <- cville_individual_FEMA %>%
+  group_by(censusTract) %>%
+  filter(!is.na(censusTract)) %>%
+  summarize(n = count(censusTract),
+            sumAmountPaidOnBuildingClaim = sum(amountPaidOnBuildingClaim, na.rm = T),
+            sumAmountPaidOnContentsClaim = sum(amountPaidOnContentsClaim, na.rm = T),
+            sumBuildingInsuranceCoverage = sum(totalBuildingInsuranceCoverage, na.rm = T),
+            sumContentsInsuranceCoverage = sum(totalContentsInsuranceCoverage, na.rm = T))
+
+easternIndividualByTract <- eastern_individual_FEMA %>%
+  group_by(censusTract) %>%
+  filter(!is.na(censusTract)) %>% 
+  summarize(n = count(censusTract),
+            sumAmountPaidOnBuildingClaim = sum(amountPaidOnBuildingClaim, na.rm = T),
+            sumAmountPaidOnContentsClaim = sum(amountPaidOnContentsClaim, na.rm = T),
+            sumBuildingInsuranceCoverage = sum(totalBuildingInsuranceCoverage, na.rm = T),
+            sumContentsInsuranceCoverage = sum(totalContentsInsuranceCoverage, na.rm = T))
+
+cvilleIndividualByYear <- cville_individual_FEMA %>%
+  group_by(yearOfLoss) %>%
+  filter(!is.na(yearOfLoss)) %>%
+  summarize(n = count(yearOfLoss),
+            sumAmountPaidOnBuildingClaim = sum(amountPaidOnBuildingClaim, na.rm = T),
+            sumAmountPaidOnContentsClaim = sum(amountPaidOnContentsClaim, na.rm = T),
+            sumBuildingInsuranceCoverage = sum(totalBuildingInsuranceCoverage, na.rm = T),
+            sumContentsInsuranceCoverage = sum(totalContentsInsuranceCoverage, na.rm = T))
+
+easternIndividualByYear <- eastern_individual_FEMA %>%
+  group_by(yearOfLoss) %>%
+  filter(!is.na(yearOfLoss)) %>%
+  summarize(n = count(yearOfLoss),
+            sumAmountPaidOnBuildingClaim = sum(amountPaidOnBuildingClaim, na.rm = T),
+            sumAmountPaidOnContentsClaim = sum(amountPaidOnContentsClaim, na.rm = T),
+            sumBuildingInsuranceCoverage = sum(totalBuildingInsuranceCoverage, na.rm = T),
+            sumContentsInsuranceCoverage = sum(totalContentsInsuranceCoverage, na.rm = T))
+
+```
+
+## Charlottesville Graphs
+
+```{r}
+# barplot of the total number of claims per year (Cville)
+ggplot(cvilleIndividualByYear) + 
+  geom_col(aes(x=as.factor(yearOfLoss), y=n),
+           fill="darkmagenta", color="darkblue") +
+  coord_flip() +
+  labs(x="Year of Loss",
+       y="Number of Claims",
+       title="Total Number of Claims Per Year of Loss for the Charlottesville Area")
+```
+
+
+```{r}
+#Line graph for Cville
+ggplot(data = cvilleIndividualByYear, aes(x=yearOfLoss, y=n)) + 
+  geom_line() +
+  geom_point() +
+  labs(x="Year of Loss",
+       y="Number of Claims",
+       title="Total Number of Claims Per Year of Loss for the Charlottesville Area")
+
+```
+
+## Eastern Virginia Graphs
+
+```{r}
+# barplot of the total number of claims per year (Eastern)
+ggplot(easternIndividualByYear) + 
+  geom_col(aes(x=as.factor(yearOfLoss), y=n),
+           fill="darkmagenta", color="darkblue") +
+  coord_flip() +
+  labs(x="Year of Loss",
+       y="Number of Claims",
+       title="Total Number of Claims Per Year of Loss for Eastern Virginia")
+```
+
+```{r}
+#Line graph
+ggplot(data = easternIndividualByYear, aes(x=yearOfLoss, y=n)) + 
+  geom_line() +
+  geom_point() +
+  labs(x="Year of Loss",
+       y="Number of Claims",
+       title="Total Number of Claims Per Year of Loss for Eastern Virginia")
+```
+
